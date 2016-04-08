@@ -1,7 +1,6 @@
 require 'sinatra/base'
 
 module Sinatra
-
   # = Sinatra::Reloader
   #
   # Extension to reload modified files.  Useful during development,
@@ -218,11 +217,7 @@ module Sinatra
       klass.set(:reload_templates) { klass.reloader? }
       klass.before do
         if klass.reloader?
-          if Reloader.thread_safe?
-            Thread.exclusive { Reloader.perform(klass) }
-          else
-            Reloader.perform(klass)
-          end
+          Mutex.new.synchronize { Reloader.perform(klass) }
         end
       end
       klass.set(:inline_templates, klass.app_file) if klass == Sinatra::Application
@@ -238,11 +233,6 @@ module Sinatra
         require watcher.path
         watcher.update
       end
-    end
-
-    # Indicates whether or not we can and need to run thread-safely.
-    def self.thread_safe?
-      Thread and Thread.list.size > 1 and Thread.respond_to?(:exclusive)
     end
 
     # Contains the methods defined in Sinatra::Base that are overridden.
